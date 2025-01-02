@@ -2,7 +2,7 @@ TARGET = prismarine
 
 CC = gcc
 CFLAGS = -Wall -g -c
-LDLIBS  = -pthread -ljson-c
+LDLIBS  = -pthread
 
 # Find all .c files recursively
 SRC = $(shell find . -name '*.c')

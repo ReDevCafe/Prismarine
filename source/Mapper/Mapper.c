@@ -12,6 +12,22 @@ void* thread_parse_folder(void* args) {
     return 0;
 }
 
+void free_prism_package(PrismPackage *prism_package) {
+    free(prism_package->childrensFolders);
+    for (int i = 0; i < prism_package->numChildrenPrisms; ++i) {
+        if (strcmp(prism_package->childrensPrisms[i].metaInfo.name, "root"))
+            free(prism_package->childrensPrisms[i].metaInfo.name);
+        if (prism_package->childrensPrisms[i].metaInfo.checksum)
+            free(prism_package->childrensPrisms[i].metaInfo.checksum);
+    }
+    free(prism_package->childrensPrisms);
+    if (strcmp(prism_package->metaInfo.name, "root"))
+        free(prism_package->metaInfo.name);
+    if (prism_package->metaInfo.checksum)
+        free(prism_package->metaInfo.checksum);
+    //free(prism_package);
+}
+
 PrismPackage* ParseFolder(const char* folderPath, int isRoot)
 {
     PrismPackage* package = (PrismPackage*) calloc(1, sizeof(PrismPackage));
@@ -151,10 +167,14 @@ PrismPackage* ParseFolder(const char* folderPath, int isRoot)
         printf("Found folder: %s\n", threadArgs[i].result->metaInfo.name);
         
         free(threadArgs[i].folderPath);
+        if (strcmp(threadArgs[i].result->metaInfo.name, "root"))
+            free(threadArgs[i].result->metaInfo.name);
+        if (threadArgs[i].result->metaInfo.checksum)
+            free(threadArgs[i].result->metaInfo.checksum);
         free(threadArgs[i].result);
     }
-
     printf("Finished parsing folder %s\n", folderPath);
+    free_prism_package(package);
     free(threads);
     free(threadArgs);
     closedir(folder);
