@@ -1,0 +1,4 @@
+*.o
+prismarine
+source/Serializer
+.vscode
