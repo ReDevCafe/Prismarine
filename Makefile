@@ -19,4 +19,6 @@ clean:
 	rm -f $(OBJ) $(TARGET)
 
 test: $(TARGET) 
-	valgrind --leak-check=full --track-origins=yes ./$(TARGET) ../Momento/src/main/java/org/momento
+	valgrind --leak-check=full --track-origins=yes ./$(TARGET) /mnt/d/Repos/Momento/src/main/java/org/momento/
+
+re: clean prismarine

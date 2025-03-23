@@ -6,11 +6,7 @@ int main(int argc, char *argv[])
     if(argc > 1)
     {
         PrismPackage* root = ParseFolder(argv[1], 1);
-        /*json_object* jPackage = serialize_prism_package(root);
-        const char* jsonString = json_object_to_json_string_ext(jPackage, JSON_C_TO_STRING_PRETTY);
-        printf("%s\n", jsonString);
-
-        json_object_put(jPackage);*/
+        printf("\033[0;33m[PRSM]\033[0;32m Finished all tasks..\033[0;33m\n");
         free(root);
 
         return 0;

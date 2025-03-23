@@ -1,4 +1,4 @@
-#ifndef Mapper 
+#ifndef Mapper
 #define Mapper
 
 #include <dirent.h>
@@ -7,9 +7,13 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "../Parser/Java.h"
 
-typedef struct MetaInfo {
-    const char* checksum;                  // will be usefull to prevent to do more calculations for nothing
+#define MAX_THREAD 4096                     // i dont know if it's even run lmao probably not.
+
+typedef struct MetaInfo 
+{
+    const char* checksum;                   // will be usefull to prevent to do more calculations for nothing
     const char* name;                       // needed for Prismarine doc
 } MetaInfo;
 
@@ -25,14 +29,16 @@ typedef struct PrismPackage
 
 } PrismPackage;
 
-typedef struct  Prism
+typedef struct Prism
 {
     MetaInfo metaInfo;
     //TODO: Add all the documentation shit to this structure    
-
+    
+    ParsedJavaFile* parse;
 } Prism;
 
-typedef struct ThreadsArgs {
+typedef struct ThreadsArgs 
+{
     char* folderPath;
     PrismPackage* result;
 } ThreadsArgs;
