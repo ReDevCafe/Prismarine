@@ -1,27 +1,15 @@
 #include "Java.h"
 
-char *trim(char *str)
-{
-    char *end;
-    while(isspace((unsigned char)*str)) ++str;
-    if(*str == 0) return str;
-
-    end = str + strlen(str) -1;
-    while(end > str && isspace((unsigned char)*end)) --end;
-    *(end+1) = '\0';
-
-    return str;
-}
-
 Annotation parseAnnotation(const char *line)
 {
+    printf("\033[0;35m[JVPR]\033[0;32m Reading \033[0m%s\n", line);
     Annotation anot;
     anot.descPath = NULL;
     anot.nameInConfigFile = NULL;
 
-    if(!strstr("line", "PrismAnotConfig"))
+    if(match_regex("PrismAnotConfig", line))
         anot.type = ANOT_TYPE_PRISM_ANOT_CONFIG;
-    else if (!strstr(line, "PrismAnot"))
+    else if (match_regex("PrismAnot", line))
         anot.type = ANOT_TYPE_PRISM_ANOT;
     else 
         anot.type = ANOT_TYPE_UNKNOWN;
@@ -64,84 +52,111 @@ Annotation parseAnnotation(const char *line)
         token = strtok(NULL, ",");
     }
 
+    if(anot.type != ANOT_TYPE_UNKNOWN)
+        printf("\033[0;35m[JVPR]\033[0;32m found %d%s\033[0m\n", anot.type, anot.descPath);
+        
     return anot;
 }
 
 
 FunctionInfo parseFunction(const char *line)
 {
-    FunctionInfo func;
-    func.returnType = NULL;
-    func.funcName   = NULL;
-    func.argCount   = 0;
+    FunctionInfo func = {NULL, NULL, NULL, 0};
+    for (int i = 0; i < MAX_ARGS; ++i) func.args[i] = NULL;
 
-    char temp[MAX_LINE];
-    strncpy(temp, line, MAX_LINE);
-    temp[MAX_LINE - 1] = '\0';
+    char buffer[MAX_LINE];
+    strncpy(buffer, line, MAX_LINE);
 
-    char *paren = strchr(temp, '(');
-    if(!paren) return func;
+    char *paren = strchr(buffer, '(');
+    if (!paren) return func;
     *paren = '\0';
 
-    char *lastSpace = strrchr(temp, ' ');
-    if(lastSpace)
-    {
-        *lastSpace = '\0';
-        func.returnType = trim(lastSpace + 1);
-        func.funcName = strdup(trim(lastSpace + 1));
-    }
+    char *end = buffer + strlen(buffer);
+    while (end > buffer && isspace((unsigned char)*(end - 1))) --end;
+    *end = '\0';
+
+    char *lastSpace = strrchr(buffer, ' ');
+    if (!lastSpace) return func; 
+
+    func.name = strdup(trim(lastSpace + 1));
+    *lastSpace = '\0'; 
+
+    char *secondLastSpace = strrchr(buffer, ' ');
+    if (!secondLastSpace) return func;
+
+    func.type = strdup(trim(secondLastSpace + 1));
+    *secondLastSpace = '\0';
+    func.access = strdup(trim(buffer));
 
     char *argsStr = paren + 1;
     char *closingParen = strchr(argsStr, ')');
-    if(closingParen) *closingParen = '\0';
+    if (closingParen) *closingParen = '\0';
 
     char *argsTrim = trim(argsStr);
-    if(strlen(argsTrim) == 0) return func;
+    if (argsTrim == '\0') return func;
 
-    char *token = strtok(argsStr, ",");
-    while(token && func.argCount < MAX_ARGS)
+    char *argStart = argsTrim;
+    while (*argStart != '\0' && func.argCount < MAX_ARGS)
     {
-        char *arg = trim(token);
+        char *comma = strchr(argStart, ',');
+        if (comma) *comma = '\0'; 
 
-        char *space = strrchr(arg, ' ');
-        if(space)
+        char *arg = trim(argStart);
+        char *space = strchr(arg, ' ');
+
+        if (space)
         {
             *space = '\0';
-            if (!func.args[func.argCount])
-            func.args[func.argCount] = malloc(sizeof(VariableInfo));
+            char *argType = trim(arg);
+            char *argName = trim(space + 1);
 
-            func.args[func.argCount]->varType = strdup(trim(arg));
-            func.args[func.argCount]->varName = strdup(trim(space + 1));
+            func.args[func.argCount] = malloc(sizeof(VariableInfo));
+            if (func.args[func.argCount])
+            {
+                func.args[func.argCount]->type = strdup(argType);
+                func.args[func.argCount]->name = strdup(argName);
+            }
         }
 
         func.argCount++;
-        token = strtok(NULL, ",");
+        if (comma) argStart = comma + 1;
+        else break;
     }
+
+    printf("\033[0;35m[JVPR]\033[0;32m ACCESS: %s TYPE: %s NAME: %s ARGCOUNT: %d ARGS: [", func.access, func.type, func.name, func.argCount);
+    for (int i = 0; i < func.argCount; ++i)
+        printf("%s %s%s", func.args[i]->type, func.args[i]->name, i != func.argCount - 1 ? ", " : "]\n");
 
     return func;
 }
 
 VariableInfo parseVariable(const char *line)
 {
-    VariableInfo var;
-    var.varType = NULL;
-    var.varName = NULL;
+    VariableInfo var = {NULL, NULL, NULL};
+    char buffer[MAX_LINE];
 
-    char temp[MAX_LINE];
-    strncpy(temp, line, MAX_LINE);
-    temp[MAX_LINE - 1] = '\0';
+    strncpy(buffer, line, MAX_LINE);
+    buffer[MAX_LINE - 1] = '\0';
 
-    char *semicolon = strchr(temp, ';');
-    if(!semicolon) *semicolon = '\0';
+    char *semicolon = strchr(buffer, ';');
+    if(semicolon) *semicolon = '\0';
 
-    char *lastSpace = strrchr(temp, ' ');
-    if(lastSpace)
-    {
-        *lastSpace = '\0';
-        var.varType = strdup(trim(temp));
-        var.varName = strdup(trim(lastSpace + 1));
-    }
+    char *end = buffer + strlen(buffer);
+    while (end > buffer && isspace((unsigned char)*(end - 1))) --end;
+    *end = '\0';
 
+    char *lastSpace = strrchr(buffer, ' ');
+    if(!lastSpace) return var; 
+    var.name = strdup(trim(lastSpace + 1));
+    *lastSpace = '\0';
+
+    char *secondLastSpace = strrchr(buffer, ' ');
+    if(!secondLastSpace) return var;
+    var.type = strdup(trim(secondLastSpace + 1));
+    *secondLastSpace = '\0';
+    var.access = strdup(trim(buffer));
+            
+    printf("\033[0;35m[JVPR]\033[0;32m ACCESS: %s TYPE: %s NAME: %s\n", var.access, var.type, var.name);
     return var;
 }
 
@@ -156,7 +171,7 @@ void freeParsedJavaFile(ParsedJavaFile *parsed)
 
     free(parsed->annotation);
     for(int i = 0; i < parsed->funcCount; ++i)
-        free(parsed->functions[i].funcName);
+        free(parsed->functions[i].name);
 
     free(parsed);
 }
@@ -191,32 +206,30 @@ ParsedJavaFile* parseJavaFile(const char *filename)
         if(trimmed[0] == '@')
         {
             currentAnnotation = parseAnnotation(trimmed);
-            hasCurrentAnnotation = 1;
+
+            if(currentAnnotation.type != ANOT_TYPE_UNKNOWN)
+                hasCurrentAnnotation = 1;
+            else hasCurrentAnnotation = 0;
         }
         else 
         {
-            if(strchr(trimmed, '('))
-            {
-                FunctionInfo func = parseFunction(trimmed);
-                funcArray[parsed->funcCount++] = func;
+            if(!hasCurrentAnnotation) continue;
 
-                if(hasCurrentAnnotation)
-                {
-                    anotArray[parsed->anotCount++] = currentAnnotation;
-                    hasCurrentAnnotation = 0;
-                }
-            }
-
-            else if(strchr(trimmed, ';'))
+            if(strchr(trimmed, ';'))
             {
                 VariableInfo var = parseVariable(trimmed);
                 varArray[parsed->varCount++] = var;
 
-                if(hasCurrentAnnotation)
-                {
-                    anotArray[parsed->anotCount++] = currentAnnotation;
-                    hasCurrentAnnotation = 0;
-                }
+                anotArray[parsed->anotCount++] = currentAnnotation;
+                hasCurrentAnnotation = 0;
+            }
+            else if(strchr(trimmed, '('))
+            {
+                FunctionInfo func = parseFunction(trimmed);
+                funcArray[parsed->funcCount++] = func;
+
+                anotArray[parsed->anotCount++] = currentAnnotation;
+                hasCurrentAnnotation = 0;
             }
         }
     }

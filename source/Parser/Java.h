@@ -6,6 +6,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "../Util/str.h"
+
 #define MAX_LINE 4096               // If someone make an issue saying that this is not enough lines i will bake my sanity into a pie
 #define MAX_ARGS 32
 #define MAX_ARRAY 512
@@ -26,18 +28,19 @@ typedef struct
 
 typedef struct 
 {
-    char *varType;
-    char *varName;
+    char *access;
+    char *type;
+    char *name;
 } VariableInfo;
 
 typedef struct 
 {
-    char *returnType;
-    char *funcName;
+    char *access;
+    char *type;
+    char *name;
     int argCount;
 
     VariableInfo *args[MAX_ARGS];
-
 } FunctionInfo;
 
 typedef struct 
@@ -52,7 +55,6 @@ typedef struct
     int varCount;
 } ParsedJavaFile;
 
-char *trim(char *str);
 Annotation parseAnnotation(const char *line);
 FunctionInfo parseFunction(const char *line);
 VariableInfo parseVariable(const char *line);
