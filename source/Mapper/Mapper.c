@@ -5,9 +5,8 @@ void* thread_parse_folder(void* args)
     ThreadsArgs* threadArgs = (ThreadsArgs*) args;
     threadArgs->result = ParseFolder(threadArgs->folderPath, 0);
 
-    if (!threadArgs->result) {
+    if (!threadArgs->result)
         printf("\e\033[0;34m[MPPR]\033[0;31m Thread failed to parse folder: %s\n\e[0m", threadArgs->folderPath);
-    }
 
     return 0;
 }

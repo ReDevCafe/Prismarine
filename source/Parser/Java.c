@@ -3,9 +3,7 @@
 Annotation parseAnnotation(const char *line)
 {
     printf("\033[0;35m[JVPR]\033[0;32m Reading \033[0m%s\n", line);
-    Annotation anot;
-    anot.descPath = NULL;
-    anot.nameInConfigFile = NULL;
+    Annotation anot = { 0, NULL, NULL };
 
     if(match_regex("PrismAnotConfig", line))
         anot.type = ANOT_TYPE_PRISM_ANOT_CONFIG;
@@ -52,9 +50,6 @@ Annotation parseAnnotation(const char *line)
         token = strtok(NULL, ",");
     }
 
-    if(anot.type != ANOT_TYPE_UNKNOWN)
-        printf("\033[0;35m[JVPR]\033[0;32m found %d%s\033[0m\n", anot.type, anot.descPath);
-        
     return anot;
 }
 
