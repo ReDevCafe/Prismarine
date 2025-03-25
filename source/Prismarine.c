@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
                 GetSystemInfo(&si);
                 MAX_THREADS = si.dwNumberOfProcessors;
             #else
-                MAX_THREADS = sysconf(_SC_THREAD_THREADS_MAX);
+                MAX_THREADS = sysconf(_SC_NPROCESSORS_ONLN);
             #endif
         }
 
