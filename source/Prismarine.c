@@ -4,7 +4,6 @@ int MAX_THREADS = 0;
 
 int main(int argc, char *argv[])
 {
-    // Cause memory leak, but it works, i'm fucking lazy at this point.
     if(argc > 1)
     {   
         if(argc > 2)
@@ -21,7 +20,6 @@ int main(int argc, char *argv[])
         }
 
         MAX_THREADS = MAX_THREADS * (1 + .8/.2);
-
         if(MAX_THREADS < 0 || !MAX_THREADS)
         {
             fprintf(stderr, "Error: Invalid number of threads specified.\n");
@@ -29,7 +27,6 @@ int main(int argc, char *argv[])
         } 
 
         PrismPackage* root = ParseFolder(argv[1], 1);
-
         free_prism_package(root);
         free(root);
 
