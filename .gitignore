@@ -1,5 +1,6 @@
 *.o
 prismarine
 source/Serializer
+.vscode
 test
 build
