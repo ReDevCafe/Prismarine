@@ -1,16 +1,23 @@
 #ifndef Mapper 
 #define Mapper
 
-#include <dirent.h>
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <dirent.h>
+#endif
+
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 
+#include "../Prismarine.h"
 
 typedef struct MetaInfo {
     const char* checksum;                  // will be usefull to prevent to do more calculations for nothing
-    const char* name;                       // needed for Prismarine doc
+    const char* name;                      // needed for Prismarine doc
 } MetaInfo;
 
 typedef struct PrismPackage
@@ -37,5 +44,5 @@ typedef struct ThreadsArgs {
     PrismPackage* result;
 } ThreadsArgs;
 
-PrismPackage* ParseFolder(const char* folder, int isRoot);
+PrismPackage* ParseFolder(const char* folder, bool isRoot);
 #endif // !Mapper

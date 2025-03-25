@@ -20,6 +20,7 @@ void free_prism_package(PrismPackage *prism_package) {
         if (prism_package->childrensPrisms[i].metaInfo.checksum)
             free(prism_package->childrensPrisms[i].metaInfo.checksum);
     }
+    
     free(prism_package->childrensPrisms);
     if (strcmp(prism_package->metaInfo.name, "root"))
         free(prism_package->metaInfo.name);
@@ -28,7 +29,7 @@ void free_prism_package(PrismPackage *prism_package) {
     //free(prism_package);
 }
 
-PrismPackage* ParseFolder(const char* folderPath, int isRoot)
+PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
 {
     PrismPackage* package = (PrismPackage*) calloc(1, sizeof(PrismPackage));
     if (!package) 
@@ -41,12 +42,6 @@ PrismPackage* ParseFolder(const char* folderPath, int isRoot)
     package->metaInfo.name = "root";
     else 
     package->metaInfo.name = strdup(folderPath);
-    
-    package->metaInfo.checksum = 0;
-    package->childrensFolders = 0;
-    package->childrensPrisms = 0;
-    package->numChildrenFolders = 0;
-    package->numChildrenPrisms = 0;
 
     printf("Opening folder %s\n", folderPath);
     DIR* folder = opendir(folderPath);
@@ -58,8 +53,8 @@ PrismPackage* ParseFolder(const char* folderPath, int isRoot)
     }
 
     struct dirent* entry;
-    ThreadsArgs* threadArgs = calloc(4096, sizeof(ThreadsArgs));
-    pthread_t* threads = calloc(4096, sizeof(pthread_t));
+    ThreadsArgs* threadArgs = calloc(MAX_THREADS, sizeof(ThreadsArgs));
+    pthread_t* threads = calloc(MAX_THREADS, sizeof(pthread_t));
 
     if (!threads || !threadArgs) {
         perror("Failed to allocate memory for threads or thread arguments");
@@ -136,7 +131,6 @@ PrismPackage* ParseFolder(const char* folderPath, int isRoot)
             return 0;
         }
     }
-    
 
     printf("Waiting for threads to finish\n");
     printf("Current thread folder: %s\n", folderPath);
@@ -174,7 +168,6 @@ PrismPackage* ParseFolder(const char* folderPath, int isRoot)
         free(threadArgs[i].result);
     }
     printf("Finished parsing folder %s\n", folderPath);
-    free_prism_package(package);
     free(threads);
     free(threadArgs);
     closedir(folder);

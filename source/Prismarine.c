@@ -1,16 +1,34 @@
-#include "Mapper/Mapper.h"
+#include "Prismarine.h"
+
+int MAX_THREADS = 0;
 
 int main(int argc, char *argv[])
 {
     // Cause memory leak, but it works, i'm fucking lazy at this point.
     if(argc > 1)
-    {
-        PrismPackage* root = ParseFolder(argv[1], 1);
-        /*json_object* jPackage = serialize_prism_package(root);
-        const char* jsonString = json_object_to_json_string_ext(jPackage, JSON_C_TO_STRING_PRETTY);
-        printf("%s\n", jsonString);
+    {   
+        if(argc > 2)
+            MAX_THREADS = atoi(argv[2]);
+        else 
+        {
+            #ifdef _WIN32
+                SYSTEM_INFO si;
+                GetSystemInfo(&si);
+                MAX_THREADS = si.dwNumberOfProcessors;
+            #else
+                MAX_THREADS = sysconf(_SC_THREAD_THREADS_MAX);
+            #endif
+        }
 
-        json_object_put(jPackage);*/
+        if(MAX_THREADS < 0 || !MAX_THREADS)
+        {
+            fprintf(stderr, "Error: Invalid number of threads specified.\n");
+            return 1;
+        } 
+
+        PrismPackage* root = ParseFolder(argv[1], 1);
+
+        free_prism_package(root);
         free(root);
 
         return 0;
