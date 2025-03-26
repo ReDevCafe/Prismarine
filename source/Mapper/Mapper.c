@@ -8,16 +8,19 @@ void* thread_parse_folder(void* args) {
     threadArgs->result = ParseFolder(threadArgs->folderPath, 0);
 
     if (!threadArgs->result)
-        printf("\e[0;91m!!! Thread failed to parse folder: %s\n\e[0m", threadArgs->folderPath);
+        printf("\e\033[0;34m[MPPR]\033[0;31m Thread failed to parse folder: %s\n\e[0m", threadArgs->folderPath);
 
     return 0;
 }
 
-void free_prism_package(PrismPackage *prism_package)
+void freePrismPackage(PrismPackage *prism_package)
 {
     free(prism_package->childrensFolders);
     for (int i = 0; i < prism_package->numChildrenPrisms; ++i)
     {
+        if (prism_package->childrensPrisms[i].parse)
+            freeParsedJavaFile(prism_package->childrensPrisms[i].parse);
+
         if (strcmp(prism_package->childrensPrisms[i].metaInfo.name, "root"))
             free(prism_package->childrensPrisms[i].metaInfo.name);
 
@@ -39,20 +42,19 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
     PrismPackage* package = (PrismPackage*) calloc(1, sizeof(PrismPackage));
     if (!package) 
     {
-        perror("Failed to allocate memory for PrismPackage");
+        perror("\033[0;34m[MPPR]\033[0;31m Failed to allocate memory for PrismPackage");
         return 0;
     }    
 
     if(isRoot)
-    package->metaInfo.name = "root";
+        package->metaInfo.name = "root";
     else 
-    package->metaInfo.name = strdup(folderPath);
+        package->metaInfo.name = strdup(folderPath);
 
-    printf("Opening folder %s\n", folderPath);
     DIR* folder = opendir(folderPath);
     if(!folder)
     {
-        printf("\e[0;91mFailed to open folder %s\e[0m", folderPath);
+        printf("\e\033[0;34m[MPPR]\033[0;31m Failed to open folder %s\e[0m", folderPath);
         free(package);
         return 0;
     }
@@ -63,7 +65,7 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
 
     if (!threads || !threadArgs) 
     {
-        perror("Failed to allocate memory for threads or thread arguments");
+        perror("\033[0;34m[MPPR]\033[0;37m Failed to allocate memory for threads or thread arguments");
         free(threads);
         free(threadArgs);
         closedir(folder);
@@ -74,15 +76,27 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
     while((entry = readdir(folder)) != 0)
     {
         if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-        continue;
+            continue;
+        
+#ifdef _WIN32
+        char path[MAX_PATH];
+#else 
+        char path[PATH_MAX];
+#endif
+
+        if(folderPath[strlen(folderPath) - 1] == '/')
+            snprintf(path, sizeof(path), "%s%s", folderPath, entry->d_name);
+        else
+            snprintf(path, sizeof(path), "%s/%s", folderPath, entry->d_name);
+
+#ifdef DEBUG
+        printf("\033[0;34m[MPPR]\033[0;31m Processing \033[0;37m%s\n", path);
+#endif // DEBUG
 
         switch (entry->d_type)
         {
             case DT_DIR:
                 package->numChildrenFolders++;
-
-                char path[1024];
-                snprintf(path, sizeof(path), "%s/%s", folderPath, entry->d_name);
                 unsigned long index = package->numChildrenFolders - 1;
 
                 threadArgs[index].folderPath = strdup(path);
@@ -94,6 +108,7 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
                     thread_parse_folder, 
                     &threadArgs[index]
                 );
+
                 break;
 
             case DT_REG:
@@ -106,7 +121,7 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
 
                 if (!package->childrensPrisms) 
                 {
-                    perror("Failed to allocate memory for child prisms");
+                    perror("\033[0;34m[MPPR]\033[0;31m Failed to allocate memory for child prisms\n");
                     closedir(folder);
                     free(package);
                     return 0;
@@ -114,8 +129,20 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
                 Prism prism = {0};
                 prism.metaInfo.name = strdup(entry->d_name);
                 prism.metaInfo.checksum = 0;
-                package->childrensPrisms[package->numChildrenPrisms -1] = prism;
 
+                ParsedJavaFile* jvpr = parseJavaFile(path);
+                if(!jvpr)
+                {
+                    printf("\033[0;34m[MPPR]\033[0;31m Failed to parse Java file: %s\n", path);
+                    closedir(folder);
+
+                    free(jvpr);
+                    free(package);
+                    return 0;
+                }
+                prism.parse = jvpr;
+
+                package->childrensPrisms[package->numChildrenPrisms - 1] = prism;
                 break;
                 
             default:
@@ -132,7 +159,7 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
 
         if (!package->childrensFolders) 
         {
-            perror("Failed to allocate memory for child folders");
+            perror("\033[0;34m[MPPR]\033[0;32m Failed to allocate memory for child folders");
             closedir(folder);
             free(package);
             return 0;
@@ -147,16 +174,18 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
 
     if(threadArgs == 0)
     {
-        printf("Skipped %s\n", folderPath);
+        printf("\e\033[0;34m[MPPR]\033[0;31m Skipped \e[0m%s\n", folderPath);
     }
     else for (unsigned long i = 0; i < package->numChildrenFolders; ++i)
     {
         pthread_join(threads[i], 0);
-        printf("Thread %lu finished for folder %s\n", i, folderPath);
+#ifdef DEBUG
+        printf("\033[0;34m[MPPR]\033[0;32m Thread %lu finished for folder \033[0;37m%s\n", i, folderPath);
+#endif
 
         
         if (!threadArgs[i].result) {
-            perror("\e[0;91mThread failed to parse folder\e[0m");
+            perror("\e\033[0;34m[MPPR]\033[0;31m Thread failed to parse folder\e[0m");
             continue;
         }
         
@@ -183,7 +212,7 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
         free(threadArgs[i].result);
     }
 
-    printf("Finished parsing folder %s\n", folderPath);
+    printf("\033[0;34m[MPPR]\033[0;32m Finished parsing folder\033[0;37m %s\n", folderPath);
     free(threads);
     free(threadArgs);
     closedir(folder);

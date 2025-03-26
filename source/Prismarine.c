@@ -2,6 +2,7 @@
 
 int MAX_THREADS = 0;
 
+
 int main(int argc, char *argv[])
 {
     if(argc > 1)
@@ -27,9 +28,13 @@ int main(int argc, char *argv[])
         } 
 
         PrismPackage* root = ParseFolder(argv[1], 1);
-        free_prism_package(root);
+        
+        
+
+        freePrismPackage(root);
         free(root);
 
+        printf("\033[0;35m[PRSM]\033[0;32m Completed!\033[0;37m\n");
         return 0;
     }
 

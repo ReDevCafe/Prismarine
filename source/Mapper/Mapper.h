@@ -5,6 +5,7 @@
     #include <windows.h>
 #else
     #include <dirent.h>
+    #include <linux/limits.h>
 #endif
 
 #include <pthread.h>
@@ -14,6 +15,7 @@
 #include <stdbool.h>
 
 #include "../Prismarine.h"
+#include "../Parser/Java.h"
 
 typedef struct MetaInfo {
     const char* checksum;                  // will be usefull to prevent to do more calculations for nothing
@@ -35,8 +37,8 @@ typedef struct PrismPackage
 typedef struct  Prism
 {
     MetaInfo metaInfo;
-    //TODO: Add all the documentation shit to this structure    
-
+                                            //TODO: Add all the documentation shit to this structure    
+    ParsedJavaFile* parse;                  // parsed Java file with all the shit
 } Prism;
 
 typedef struct ThreadsArgs {
@@ -45,4 +47,6 @@ typedef struct ThreadsArgs {
 } ThreadsArgs;
 
 PrismPackage* ParseFolder(const char* folder, bool isRoot);
+
+void freePrismPackage(PrismPackage *prism_package);
 #endif // !Mapper
