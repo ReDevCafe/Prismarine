@@ -59,7 +59,7 @@ Annotation parse_annotation(const char *line)
 FunctionInfo parse_function(const char *line)
 {
     FunctionInfo func = {NULL, NULL, NULL, 0};
-    for (int i = 0; i < MAX_ARGS; ++i) func.args[i] = NULL;
+    func.args = calloc(1, sizeof(VariableInfo));
 
     char *buffer = malloc(strlen(line) + 1);
     strcpy(buffer, line);
@@ -93,7 +93,7 @@ FunctionInfo parse_function(const char *line)
     if (argsTrim == '\0') return func;
 
     char *argStart = argsTrim;
-    while (*argStart != '\0' && func.argCount < MAX_ARGS)
+    while (*argStart != '\0')
     {
         char *comma = strchr(argStart, ',');
         if (comma) *comma = '\0'; 
@@ -107,12 +107,10 @@ FunctionInfo parse_function(const char *line)
             char *argType = trim(arg);
             char *argName = trim(space + 1);
 
-            func.args[func.argCount] = malloc(sizeof(VariableInfo));
-            if (func.args[func.argCount])
-            {
-                func.args[func.argCount]->type = strdup(argType);
-                func.args[func.argCount]->name = strdup(argName);
-            }
+            func.args = realloc(func.args, sizeof(VariableInfo) * (func.argCount + 1));
+
+            func.args[func.argCount].type = strdup(argType);
+            func.args[func.argCount].name = strdup(argName);
         }
 
         func.argCount++;
@@ -193,23 +191,21 @@ void freeParsedJavaFile(ParsedJavaFile *parsed)
         free(parsed->functions[i].name);
         free(parsed->functions[i].type);
         free(parsed->functions[i].access);
+        free(parsed->functions[i].args);
     }
-    free(parsed->functions);
 
+    free(parsed->functions);
     free(parsed);
 }
 
 ParsedJavaFile* parseJavaFile(const char *filename)
 {
-    ParsedJavaFile* parsed = malloc(sizeof(ParsedJavaFile));
+    ParsedJavaFile* parsed = calloc(1, sizeof(ParsedJavaFile));
     if(!parsed)
     {
         printf("033[0;35m[JVPR]\033[0;31mFailed to allocate memory for parsed Java file\n");
         return NULL;
     }
-
-    parsed->anotCount = parsed->varCount = parsed->funcCount = 0;
-    parsed->annotation = parsed->variables = parsed->functions = NULL;
 
     FILE *fp = fopen(filename, "r");
     if(!fp) 
@@ -312,5 +308,6 @@ ParsedJavaFile* parseJavaFile(const char *filename)
 #ifdef DEBUG
     printf("\033[0;35m[JVPR]\033[0;32m Finished parsing file \033[0;37m%s\n", filename);
 #endif
+
     return parsed;
 }

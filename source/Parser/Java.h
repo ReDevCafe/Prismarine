@@ -8,9 +8,6 @@
 
 #include "../Util/str.h"
 
-#define MAX_LINE  4096           // If someone make an issue saying that this is not enough lines i will bake my sanity into a pie
-#define MAX_ARGS  32
-#define MAX_ARRAY 512
 
 typedef enum 
 {
@@ -40,7 +37,7 @@ typedef struct
     char *name;
     int argCount;
 
-    VariableInfo *args[MAX_ARGS];
+    VariableInfo *args;
 } FunctionInfo;
 
 typedef struct 

@@ -113,16 +113,13 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
 
             case DT_REG:
                 package->numChildrenPrisms++;
-
-                package->childrensPrisms = (Prism*) realloc(
-                    package->childrensPrisms,
-                    package->numChildrenPrisms * sizeof(Prism)
-                );
+                package->childrensPrisms = realloc(package->childrensPrisms, package->numChildrenPrisms * sizeof(Prism));
 
                 if (!package->childrensPrisms) 
                 {
                     perror("\033[0;34m[MPPR]\033[0;31m Failed to allocate memory for child prisms\n");
                     closedir(folder);
+                    free(package->childrensPrisms);
                     free(package);
                     return 0;
                 }
