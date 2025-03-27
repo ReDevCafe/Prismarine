@@ -21,7 +21,7 @@ Annotation parse_annotation(const char *line)
     const char *end = strchr(start, ')');
     if(!end) return anot;
 
-    char params[1024];
+    char *params;
     size_t len = end - start;
 
     strncpy(params, start, len);
