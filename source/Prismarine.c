@@ -1,6 +1,5 @@
 #include "Prismarine.h"
 
-int MAX_THREADS = 0;
 
 int main(int argc, char *argv[])
 {
