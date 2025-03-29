@@ -9,7 +9,8 @@
     #include <unistd.h>
 #endif
 
-extern int MAX_THREADS;
+// C BON LA???
+int MAX_THREADS __attribute__((common));
 
 #endif // !Prismarine
 
