@@ -1,313 +1,163 @@
 #include "Java.h"
 
-Annotation parse_annotation(const char *line)
+JVMeta* isFileValid(char **lines, size_t *offset, size_t lineCount) 
 {
-    Annotation anot = { 0, NULL, NULL };
+    if(!lines || !offset || *offset >= lineCount)
+        return NULL;
 
-    if(match_regex("PrismAnotConfig", line))
-        anot.type = ANOT_TYPE_PRISM_ANOT_CONFIG;
-    else if (match_regex("PrismAnot", line))
-        anot.type = ANOT_TYPE_PRISM_ANOT;
-    else 
+    JVMeta* jvMeta = malloc(sizeof(JVMeta));
+    if(!jvMeta) 
+        return NULL;
+
+    bool isImplemented = false;
+    bool isValid = false;
+
+    while(*offset < lineCount)
     {
-        anot.type = ANOT_TYPE_UNKNOWN;
-        return anot;                    // Prevent useless parsing 
-    }
+        char *line = lines[*offset];
+        if(!line || line[0] == '\0')
+            break;
 
-    const char *start = strchr(line, '(');
-    if(!start) return anot;
-
-    ++start;
-    const char *end = strchr(start, ')');
-    if(!end) return anot;
-
-    char *params;
-    size_t len = end - start;
-
-    strncpy(params, start, len);
-    params[len] = '\0';
-    
-    char *token = strtok(params, ",");
-    while(token)
-    {
-        char *equalSign = strchr(token, '=');
-        if(equalSign)
+        char* trimmed = trim(line);
+        if(strlen(trimmed) == 0);
         {
-            *equalSign = '\0';
-            char *key = trim(token);
-            char *value = trim(equalSign + 1);
+            (*offset)++;
+            continue;
+        }
 
-            if(value[0] == '\"')
+        if(!isImplemented && trimmed[0] == '@' && match_regex("PrismClass", line))
+            isImplemented = true;
+        else 
+        {
+            const char *keyword = NULL;
+
+            if(match_regex("class", line))
             {
-                ++value;
-                char *quoteEnd = strchr(value, '\"');
-                if(quoteEnd) *quoteEnd = '\0';
+                jvMeta->type = CLASS;
+                keyword = "class";
+            }
+            else if(match_regex("enum", line))
+            {
+                jvMeta->type = CLASS_ENUM;
+                keyword = "enum";
+            }
+            else if(match_regex("abstract", line))
+            {
+                jvMeta->type = CLASS_ABSTRACT;
+                keyword = "abstract";
+            }
+            else if(match_regex("interface", line))
+            {
+                jvMeta->type = CLASS_INTERFACE;
+                keyword = "interface";
+            }
+            else
+            {
+                (*offset)++;
+                continue;
+            }
+            
+            isValid = true;
+
+            char *p = strstr(trimmed, keyword);
+            if(!p)
+            {
+                (*offset)++;
+                continue;
             }
 
-            if(strcmp(key, "descPath") == 0)
-                anot.descPath = strdup(value);
-            else if(strcmp(key, "nameInConfigFile") == 0)
-                anot.nameInConfigFile = strdup(value);
-        }
-        token = strtok(NULL, ",");
-    }
+            p += strlen(keyword);
+            while(*p && isspace((unsigned char)*p)) p++;
 
-    return anot;
-}
+            size_t i = 0;
+            while(p[i] && (isalnum((unsigned char)p[i]) || p[i] == '_'))
+                i++;
 
+            if(i > 0 && i < sizeof jvMeta->name)
+            {
+                memcpy(jvMeta->name, p, i);
+                jvMeta->name[i] = '\0';
+                isValid = true;
 
-FunctionInfo parse_function(const char *line)
-{
-    FunctionInfo func = {NULL, NULL, NULL, 0};
-    func.args = calloc(1, sizeof(VariableInfo));
-
-    char *buffer = malloc(strlen(line) + 1);
-    strcpy(buffer, line);
-
-    char *paren = strchr(buffer, '(');
-    if (!paren) return func;
-    *paren = '\0';
-
-    char *end = buffer + strlen(buffer);
-    while (end > buffer && isspace((unsigned char)*(end - 1))) --end;
-    *end = '\0';
-
-    char *lastSpace = strrchr(buffer, ' ');
-    if (!lastSpace) return func; 
-
-    func.name = strdup(trim(lastSpace + 1));
-    *lastSpace = '\0'; 
-
-    char *secondLastSpace = strrchr(buffer, ' ');
-    if (!secondLastSpace) return func;
-
-    func.type = strdup(trim(secondLastSpace + 1));
-    *secondLastSpace = '\0';
-    func.access = strdup(trim(buffer));
-
-    char *argsStr = paren + 1;
-    char *closingParen = strchr(argsStr, ')');
-    if (closingParen) *closingParen = '\0';
-
-    char *argsTrim = trim(argsStr);
-    if (argsTrim == '\0') return func;
-
-    char *argStart = argsTrim;
-    while (*argStart != '\0')
-    {
-        char *comma = strchr(argStart, ',');
-        if (comma) *comma = '\0'; 
-
-        char *arg = trim(argStart);
-        char *space = strchr(arg, ' ');
-
-        if (space)
-        {
-            *space = '\0';
-            char *argType = trim(arg);
-            char *argName = trim(space + 1);
-
-            func.args = realloc(func.args, sizeof(VariableInfo) * (func.argCount + 1));
-
-            func.args[func.argCount].type = strdup(argType);
-            func.args[func.argCount].name = strdup(argName);
+                break;
+            }
         }
 
-        func.argCount++;
-        if (comma) argStart = comma + 1;
-        else break;
+        (*offset)++;
     }
 
-#ifdef DEBUG
-    printf("\033[0;35m[JVPR]\033[0;32m ACCESS: %s TYPE: %s NAME: %s ARGCOUNT: %d ARGS: [", func.access, func.type, func.name, func.argCount);
-    for (int i = 0; i < func.argCount; ++i)
-        printf("%s %s%s", func.args[i]->type, func.args[i]->name, i != func.argCount - 1 ? ", " : "]\n");
-#endif // DEBUG
-
-    free(buffer);
-    return func;
-}
-
-VariableInfo parse_variable(const char *line)
-{
-    VariableInfo var = {NULL, NULL, NULL};
-    char *buffer =  malloc(strlen(line) + 1);
-    if(!buffer)
+    if(!isImplemented)
     {
-        printf("\033[0;31m[JVPR]\033[0m Failed to allocate memory for variable parsing\n");
-        return var;
+        free(jvMeta);
+        return NULL;
     }
 
-    strcpy(buffer, line);
-    char *semicolon = strchr(buffer, ';');
-    if(semicolon) *semicolon = '\0';
-
-    char *end = buffer + strlen(buffer);
-    while (end > buffer && isspace((unsigned char)*(end - 1))) --end;
-    *end = '\0';
-
-    char *lastSpace = strrchr(buffer, ' ');
-    if(!lastSpace) return var; 
-    var.name = strdup(trim(lastSpace + 1));
-    *lastSpace = '\0';
-
-    char *secondLastSpace = strrchr(buffer, ' ');
-    if(!secondLastSpace) return var;
-    var.type = strdup(trim(secondLastSpace + 1));
-    *secondLastSpace = '\0';
-    var.access = strdup(trim(buffer));
-
-#ifndef DEBUG
-    printf("\033[0;35m[JVPR]\033[0;32m ACCESS: %s TYPE: %s NAME: %s\n", var.access, var.type, var.name);
-#endif    
-
-    free(buffer);
-    return var;
-}
-
-// not sure about all of that, could be fucked up
-void freeParsedJavaFile(ParsedJavaFile *parsed)
-{
-    for(int i = 0; i < parsed->anotCount; ++i)
+    if(!isValid)
     {
-        printf("\033[0;35m[JVPR]\033[0m Freeing annotation %s\n", parsed->annotation[i].descPath);
-        free(parsed->annotation[i].descPath);
-        free(parsed->annotation[i].nameInConfigFile);
+        free(jvMeta->name);
+        free(jvMeta);
+        return NULL;
     }
-    free(parsed->annotation);
-
-    for(int i = 0; i < parsed->varCount; ++i)
-    {
-        printf("\033[0;35m[JVPR]\033[0m Freeing variable %s %s %s\n", parsed->variables[i].access, parsed->variables[i].type, parsed->variables[i].name);
-        free(parsed->variables[i].name);
-        free(parsed->variables[i].type);
-        free(parsed->variables[i].access);
-    }
-    free(parsed->variables);
-
-    for(int i = 0; i < parsed->funcCount; ++i)
-    {
-        printf("\033[0;35m[JVPR]\033[0m Freeing function %s %s %s\n", parsed->functions[i].access, parsed->functions[i].type, parsed->functions[i].name);
-        free(parsed->functions[i].name);
-        free(parsed->functions[i].type);
-        free(parsed->functions[i].access);
-        free(parsed->functions[i].args);
-    }
-
-    free(parsed->functions);
-    free(parsed);
 }
 
 ParsedJavaFile* parseJavaFile(const char *filename)
 {
-    ParsedJavaFile* parsed = calloc(1, sizeof(ParsedJavaFile));
-    if(!parsed)
+    FILE *fp = fopen(filename, "r");
+    if(!fp)
     {
-        printf("033[0;35m[JVPR]\033[0;31mFailed to allocate memory for parsed Java file\n");
+        fprintf(stderr, "Error: failed to open %s.\n", filename);
         return NULL;
     }
 
-    FILE *fp = fopen(filename, "r");
-    if(!fp) 
+    ParsedJavaFile* parsed = calloc(1, sizeof(ParsedJavaFile));
+    if(!parsed)
     {
-        printf("033[0;35m[JVPR]\033[0;31mError opening file %s\n", filename);
-        free(parsed);
-        return NULL;    
+        return NULL;
     }
 
-    Annotation currentAnnotation;
-    int hasCurrentAnnotation = 0;
-
-    Annotation   *anotArray = calloc(1, sizeof(Annotation));
-    FunctionInfo *funcArray = calloc(1, sizeof(FunctionInfo)); 
-    VariableInfo *varArray  = calloc(1, sizeof(VariableInfo));
-
     char *line = NULL;
+    char **lines = NULL;
+    size_t lineCount = 0;
+
     size_t len = 0;
     ssize_t read;
 
-    while((read = getline(&line, &len, fp)) != -1)
+    while(1)
     {
-        char *trimmed = trim(line);
-        if(strlen(trimmed) == 0)
-            continue;
+        long offset = ftell(fp);
+        read = getline(&line, &len, fp);
+        if(read == -1) break; // EOF or shit
 
-        if(trimmed[0] == '@')
+        char *copy = strdup(line);
+        if(!copy)
         {
-            currentAnnotation = parse_annotation(trimmed);
-            if(currentAnnotation.type == ANOT_TYPE_UNKNOWN)
-            {
-                hasCurrentAnnotation = 0;
-                continue;
-            }
-
-            hasCurrentAnnotation = 1;
+            perror("strdup copy");
+            break;
         }
-        else 
+
+        char **temp = realloc(lines, sizeof(*lines) * (lineCount + 1));
+        if(!temp)
         {
-            if(!hasCurrentAnnotation) continue;
-
-            if(strchr(trimmed, ';'))
-            {
-                VariableInfo var = parse_variable(trimmed);
-
-                varArray  = realloc(varArray, sizeof(VariableInfo) * (parsed->varCount +1));
-                anotArray = realloc(anotArray, sizeof(Annotation)  * (parsed->anotCount +1)); 
-
-                varArray[parsed->varCount]   = var;  
-                anotArray[parsed->anotCount] = currentAnnotation;
-
-                parsed->varCount++;
-                parsed->anotCount++;
-            }
-            else if(strchr(trimmed, '('))
-            {
-                FunctionInfo func = parse_function(trimmed);
-
-                funcArray = realloc(funcArray, sizeof(FunctionInfo) * (parsed->varCount +1));
-                anotArray = realloc(anotArray, sizeof(Annotation)   * (parsed->varCount +1));
-
-                funcArray[parsed->funcCount] = func;
-                anotArray[parsed->anotCount] = currentAnnotation;
-
-                parsed->funcCount++;
-                parsed->anotCount++;
-            }
-
-            hasCurrentAnnotation = 0;
+            perror("realloc temp");
+            break;
         }
+
+        lines = temp;
+        lines[lineCount++] = copy;
     }
+
+    size_t *offset = 0;
+    JVMeta* jvmeta = isFileValid(lines, offset, lineCount);
+    if(jvmeta)
+    {
+        parsed->classInfo = jvmeta;
+    }
+
+    free(jvmeta);
+    free(parsed);
     free(line);
     fclose(fp);
-
-    if(parsed->anotCount > 0)
-    {
-        parsed->annotation = malloc(sizeof(Annotation) * parsed->anotCount);
-        for(int i = 0; i < parsed->anotCount; ++i)
-            parsed->annotation[i] = anotArray[i];
-    }
-
-    if(parsed->funcCount > 0)
-    {
-        parsed->functions = malloc(sizeof(FunctionInfo) * parsed->funcCount);
-        for(int i = 0; i < parsed->funcCount; ++i)
-            parsed->functions[i] = funcArray[i];
-    }
-
-    if(parsed->varCount > 0)
-    {
-        parsed->variables = malloc(sizeof(VariableInfo) * parsed->varCount);
-        for(int i = 0; i < parsed->varCount; ++i)
-            parsed->variables[i] = varArray[i];
-    }
-
-    free(anotArray);
-    free(funcArray);
-    free(varArray);
-
-#ifdef DEBUG
-    printf("\033[0;35m[JVPR]\033[0;32m Finished parsing file \033[0;37m%s\n", filename);
-#endif
-
-    return parsed;
+    for(size_t i = 0; i < lineCount; ++i)
+        free(lines[i]);
+    free(lines);
 }

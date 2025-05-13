@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 #include "../Util/str.h"
-
 
 typedef enum 
 {
@@ -15,6 +15,14 @@ typedef enum
     ANOT_TYPE_PRISM_ANOT,
     ANOT_TYPE_PRISM_ANOT_CONFIG
 } AnotType;
+
+typedef enum 
+{
+    CLASS,
+    CLASS_ENUM,
+    CLASS_INTERFACE,
+    CLASS_ABSTRACT
+} ClassType;
 
 typedef struct
 {
@@ -40,8 +48,18 @@ typedef struct
     VariableInfo *args;
 } FunctionInfo;
 
+typedef struct
+{
+    char *name;
+    ClassType *type;
+
+} JVMeta;
+
+
 typedef struct 
 {
+    JVMeta *classInfo;
+
     Annotation *annotation;
     int anotCount;
 

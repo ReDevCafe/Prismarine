@@ -27,7 +27,11 @@ int main(int argc, char *argv[])
         } 
 
         PrismPackage* root = ParseFolder(argv[1], 1);
-        
+        if(!root)
+        {
+            perror("AAAAAAAAAAAAAAA");
+            return 0;
+        }
         
 
         freePrismPackage(root);
