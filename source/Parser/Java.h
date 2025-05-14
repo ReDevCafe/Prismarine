@@ -64,7 +64,6 @@ typedef struct
     char* name;
 
     // for documentation side:
-    // + title is supposed to be name but if it's customNamed it will have something else instead :3
     char* title;
     char* description;
 

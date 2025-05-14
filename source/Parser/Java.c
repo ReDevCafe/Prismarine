@@ -9,7 +9,6 @@ JVMeta* isFileValid(char **lines, size_t *offset, size_t lineCount)
 
     bool isImplemented = false;
     bool isValid = false;
-
     while(*offset < lineCount)
     {
         char *line = lines[*offset];
@@ -259,9 +258,8 @@ ParsedJavaFile* parseJavaFile(const char *filename)
 
     char *line = NULL;
     char **lines = NULL;
-    size_t lineCount = 0;
 
-    size_t len = 0;
+    size_t len = 0, lineCount = 0;
     ssize_t read;
 
     while(1)
@@ -288,8 +286,7 @@ ParsedJavaFile* parseJavaFile(const char *filename)
         lines[lineCount++] = copy;
     }
 
-    size_t ofsValue = 0;
-    size_t *offset = &ofsValue;
+    size_t ofsValue = 0, *offset = &ofsValue;
     JVMeta* jvMeta = isFileValid(lines, offset, lineCount);
     if(!jvMeta) 
     {
@@ -307,7 +304,6 @@ ParsedJavaFile* parseJavaFile(const char *filename)
 
     parsed->prismObject = NULL;
     parsed->classInfo = jvMeta;
-    
     while(*offset < lineCount)
     {
         JVPrismObject* obj = parseAnnotation(lines, offset, lineCount);
