@@ -20,9 +20,9 @@ int main(int argc, char *argv[])
         }
 
         MAX_THREADS = MAX_THREADS * (1 + .8/.2);
-        if(MAX_THREADS < 0 || !MAX_THREADS)
+        if(MAX_THREADS < 0 || !MAX_THREADS || true)
         {
-            fprintf(stderr, "Error: Invalid number of threads specified.\n");
+            fprintf(stderr, "\033[0;35m[PRSM]\033[0;35m Invalid number of threads specified.\033[0;37m\n");
             return 1;
         } 
 
@@ -32,8 +32,8 @@ int main(int argc, char *argv[])
             perror("AAAAAAAAAAAAAAA");
             return 0;
         }
-        
 
+     
         freePrismPackage(root);
         free(root);
 

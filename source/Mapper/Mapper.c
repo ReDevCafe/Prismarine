@@ -21,7 +21,7 @@ void freePrismPackage(PrismPackage *prism_package)
     for (int i = 0; i < prism_package->numChildrenPrisms; ++i)
     {
         if (prism_package->childrensPrisms[i].parse)
-//            freeParsedJavaFile(prism_package->childrensPrisms[i].parse);
+            freeParsedJavaFile(prism_package->childrensPrisms[i].parse);
 
         if (strcmp(prism_package->childrensPrisms[i].metaInfo.name, "root"))
             free(prism_package->childrensPrisms[i].metaInfo.name);
@@ -31,7 +31,6 @@ void freePrismPackage(PrismPackage *prism_package)
     }
     
     free(prism_package->childrensPrisms);
-    printf(" ntm un peu nan %s\n", prism_package->metaInfo.name);
     if (strcmp(prism_package->metaInfo.name, "root"))
         free(prism_package->metaInfo.name);
 
