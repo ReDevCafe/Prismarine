@@ -33,8 +33,6 @@ int main(int argc, char *argv[])
             return 0;
         }
 
-        int abcdefdeffjrjg = 0;
-        // dd     
         freePrismPackage(root);
         free(root);
 

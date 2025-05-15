@@ -50,14 +50,16 @@ typedef struct
 {
     JVObjectType *objectType;           // is it a method? a variable?
     JVAccessType *access;               // public, private, protected... (if not found, mean that is private)
-    unsigned int  modifiers;
+    unsigned int  modifiers;            // use bit shift to combine multiple modifiers (static final)
 
     char* object;                       // what is return (void, int, List<string> ect..)
     char* name;                         // the name of the declaration string  >>>>> OhOui <<<<  
 
     // for documentation side:
-    char* title;
+    char* title;                        
     char* description;
+    char* webExampleId;
+
 
     // method only:
     JVArg** args;
@@ -73,6 +75,6 @@ typedef struct
 } ParsedJavaFile;
 
 JVMeta* isFileValid(char **lines, size_t *offset, size_t lineCount);
-JVPrismObject* tryParseJVObject(char **lines, size_t *offset, size_t lineCount);
+JVPrismObject* tryParseJVObject(char **lines, size_t *offset, size_t lineCount, JVMeta* jvMeta);
 
 #endif // !JAVA_CORE_HEADER_PARSER

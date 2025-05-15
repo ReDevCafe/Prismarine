@@ -15,27 +15,27 @@ JVMeta* isFileValid(char **lines, size_t *offset, size_t lineCount)
         if(!line || line[0] == '\0') break;
 
         char* trimmed = trim(line);
-        if(!isImplemented && trimmed[0] == '@' && match_regex("PrismClass", line))
+        if(!isImplemented && trimmed[0] == '@' && strstr(trimmed, "PrismClass"))
             isImplemented = true;
         else 
         {
             const char *keyword = NULL;
-            if(match_regex("class", line))
+            if(strstr(line,"class"))
             {
                 jvMeta->type = CLASS;
                 keyword = "class";
             }
-            else if(match_regex("enum", line))
+            else if(strstr(line, "enum"))
             {
                 jvMeta->type = CLASS_ENUM;
                 keyword = "enum";
             }
-            else if(match_regex("abstract", line))
+            else if(strstr(line,"abstract"))
             {
                 jvMeta->type = CLASS_ABSTRACT;
                 keyword = "abstract";
             }
-            else if(match_regex("interface", line))
+            else if(strstr(line,"interface"))
             {
                 jvMeta->type = CLASS_INTERFACE;
                 keyword = "interface";
@@ -150,7 +150,7 @@ ParsedJavaFile* parseJavaFile(const char *filename)
             free(lines[i]);
         free(lines);
 
-        perror("SKIPPING: Prismarine as not been implemented in this files");
+        printf("\033[0;35m[JVPR]\033[0;33m SKIPPING: Prismarine as not been correctly implemented in %s\033[0;37m\n", filename);
         return NULL;
     }
 
@@ -158,7 +158,7 @@ ParsedJavaFile* parseJavaFile(const char *filename)
     parsed->classInfo = jvMeta;
     while(*offset < lineCount)
     {
-        JVPrismObject* obj = tryParseJVObject(lines, offset, lineCount);
+        JVPrismObject* obj = tryParseJVObject(lines, offset, lineCount, jvMeta);
         if(!obj)
         {
             (*offset)++;
@@ -176,9 +176,6 @@ ParsedJavaFile* parseJavaFile(const char *filename)
         parsed->prismObject[parsed->prismCount] = obj;
         parsed->prismCount++;
     }
-
-    for(int i = 0; i < parsed->prismCount; ++i)
-        printf("- %s.%s \n", parsed->prismObject[i]->title, parsed->prismObject[i]->description);
 
     free(line);
     fclose(fp);
@@ -206,17 +203,19 @@ void freeParsedJavaFile(ParsedJavaFile *parsed)
             free(parsed->prismObject[i]->description);
             free(parsed->prismObject[i]->object);
 
-            if(parsed->prismObject[i]->argCount <= 0)
-            for(int j = 0; j < parsed->prismObject[i]->argCount; ++j)
+            if(parsed->prismObject[i]->argCount > 0)
             {
-                free(parsed->prismObject[i]->args[j]->name);
-                free(parsed->prismObject[i]->args[j]->type);
-                free(parsed->prismObject[i]->args[j]);
+                for(int j = 0; j < parsed->prismObject[i]->argCount; ++j)
+                {
+                    free(parsed->prismObject[i]->args[j]->name);
+                    free(parsed->prismObject[i]->args[j]->type);
+                    free(parsed->prismObject[i]->args[j]);
+                }
+                free(parsed->prismObject[i]->args);
             }
 
             free(parsed->prismObject[i]);
         }
-
         free(parsed->prismObject);
     }
 

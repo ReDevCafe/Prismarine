@@ -58,10 +58,16 @@ void parseMethod(JVPrismObject* object, char* buffer)
     object->modifiers = JVMOD_NONE;
     object->access = PRIVATE;
     
-    // Preserve buffer just in case (if asked in pr, can be remove)
     char  *declaration = strdup(buffer);
     size_t len = strlen(declaration);
     if(len > 0 && (declaration[len - 1] == ';' || declaration[len - 1] == '{')) declaration[len - 1] = '\0';
+
+    if(strstr(declaration, "public")) object->access = PUBLIC;
+    else if(strstr(declaration, "protected")) object->access = PROTECTED;
+
+    if(strstr(declaration, "static"))    object->modifiers |= JVMOD_STATIC;
+    if(strstr(declaration, "final"))     object->modifiers |= JVMOD_FINAL;
+    if(strstr(declaration, "abstract")) object->modifiers |= JVMOD_ABSTRACT;
 
     char *startParen = strchr(declaration, '(');
     char *endParen   = startParen ? strchr(declaration, ')') : NULL;
@@ -70,29 +76,59 @@ void parseMethod(JVPrismObject* object, char* buffer)
     {
         *endParen = '\0';
         params = trim(startParen + 1);
+        *startParen = '\0';
     }
+
+    char *nameEnd = declaration + strlen(declaration) - 1;
+    while(nameEnd > declaration && isspace((unsigned char)*nameEnd)) nameEnd--;
+    char *nameStart = nameEnd;
+    while(nameStart > declaration && !isspace((unsigned char)*(nameStart - 1))) nameStart--;
+    char saved = *(nameEnd + 1);
+    *(nameEnd + 1) = '\0';
+    object->name = strdup(nameStart);
+    *(nameEnd + 1) = saved;
+
+    char *typeEnd = nameStart - 1;
+    while(typeEnd > declaration && isspace((unsigned char)*typeEnd)) typeEnd--;
+    char *typeStart = typeEnd;
+    while(typeStart > declaration && !isspace((unsigned char)*(typeStart - 1))) typeStart--;
+    saved = *(typeEnd + 1);
+    *(typeEnd + 1) = '\0';
+    object->object = strdup(typeStart);
+    *(typeEnd + 1) = saved;
 
     object->args = NULL;
     object->argCount = 0;
+
     if(params && *params)
     {
-        char* tok = strtok(params, ",");
+        char *tok = strtok(params, ",");
         while(tok)
         {
             tok = trim(tok);
-            if(!*tok)
+            if(*tok)
             {
-                char* space = strchr(tok, ' ');
-                if(!space) continue;
+                char *space = strrchr(tok, ' ');
+                if(!space)
+                {
+                    tok = strtok(NULL, ','); 
+                    continue;
+                }
 
-                JVArg* arg = malloc(sizeof(JVArg)); 
-                arg->type = NULL;
+                JVArg* arg = calloc(1, sizeof(JVArg));
+                if(!arg)
+                {
+                    free(declaration);
+                    perror("JVPrism failed to allocate memory for arg");
+                    break;
+                }
+
                 *space = '\0';
 
                 arg->type = strdup(trim(tok));
                 arg->name = strdup(trim(space + 1));
 
-                object->args = realloc(object->args, sizeof(JVArg) * (object->argCount + 1));
+                object->args = realloc(object->args, sizeof(JVArg*) * (object->argCount + 1));
                 object->args[object->argCount++] = arg;
             }
 
@@ -103,7 +139,7 @@ void parseMethod(JVPrismObject* object, char* buffer)
     free(declaration);
 }
 
-JVPrismObject* tryParseJVObject(char **lines, size_t *offset, size_t lineCount)
+JVPrismObject* tryParseJVObject(char **lines, size_t *offset, size_t lineCount, JVMeta* jvMeta)
 {
     if(!lines || *offset >= lineCount)
         return NULL;
@@ -122,7 +158,7 @@ JVPrismObject* tryParseJVObject(char **lines, size_t *offset, size_t lineCount)
             break;
 
         char* trimmed = trim(line);
-        if(!isImplemented && trimmed[0] == '@' && match_regex("PrismAnot", trimmed))  
+        if(!isImplemented && trimmed[0] == '@' && strstr(trimmed, "PrismAnot"))  
             isImplemented = true;
         if(isImplemented && isSetup != 0b0011)
         {
@@ -233,7 +269,8 @@ JVPrismObject* tryParseJVObject(char **lines, size_t *offset, size_t lineCount)
         if(obj->name) free(obj->name);
         if(obj->description) free(obj->description);
         free(obj);
-
+        
+        printf("\033[0;35m[JVPC]\033[0;33m SKIPPING: Prismarine as not been correctly implemented in class (%s)\033[0;37m\n", jvMeta->name);
         return NULL;
     }
 

@@ -4,3 +4,4 @@ source/Serializer
 .vscode
 test
 build
+callgrind.out*

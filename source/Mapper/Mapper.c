@@ -204,7 +204,10 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
         free(threadArgs[i].result);
     }
 
+#ifdef DEBUG
     printf("\033[0;34m[MPPR]\033[0;32m Finished parsing folder\033[0;37m %s\n", folderPath);
+#endif //!debug
+
     free(threads);
     free(threadArgs);
     closedir(folder);

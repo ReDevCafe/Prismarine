@@ -19,8 +19,8 @@
 #include "../Parser/Java.h"
 
 typedef struct MetaInfo {
-    const char* checksum;                  // will be usefull to prevent to do more calculations for nothing
-    const char* name;                      // needed for Prismarine doc
+    const char* checksum;                   // will be usefull to prevent to do more calculations for nothing
+    const char* name;                       // needed for Prismarine doc
 } MetaInfo;
 
 typedef struct PrismPackage
@@ -38,7 +38,8 @@ typedef struct PrismPackage
 typedef struct  Prism
 {
     MetaInfo metaInfo;
-                                            //TODO: Add all the documentation shit to this structure    
+                                            //TODO: Add all the documentation shit to this structure   
+                                            //TODO: imagine how to handle multiple langage parse
     ParsedJavaFile* parse;                  // parsed Java file with all the shit
 } Prism;
 
