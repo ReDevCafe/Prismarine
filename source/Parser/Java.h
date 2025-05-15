@@ -7,78 +7,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 
-#include "../Util/str.h"
-
-#define VARIABLE_REGEX \
-  "^[[:space:]]*"                      /* leading space */ \
-  "(public|private|protected)?"        /* optional access */ \
-  "[[:space:]]*"                       /* optional space */ \
-  "[^=()]+?"                           /* type & name, no parens */ \
-  "(=[^;]+)?;"                         /* optional initializer */ \
-  "[[:space:]]*$"                      /* trailing space */
-
-#define METHOD_REGEX "^[[:space:]]*(public|private|protected)?[[:space:]].*\\([^;]*\\)[[:space:]]*(\\{)?[[:space:]]*?"
-
-typedef enum 
-{
-    CLASS,
-    CLASS_ENUM,
-    CLASS_INTERFACE,
-    CLASS_ABSTRACT
-} JVClassType;
-
-typedef enum 
-{
-    METHOD,
-    VARIABLE,
-} JVObjectType;
-
-typedef enum {
-    JVDECL_NONE     = 0,
-    JVDECL_STATIC   = 1<<0,
-    JVDECL_FINAL    = 1<<1,
-    JVDECL_ABSTRACT = 1<<2
-} JVDeclarationType;
-
-typedef enum 
-{
-    PRIVATE,
-    PUBLIC,
-    PROTECTED
-} JVAccessType;
-
-typedef struct
-{
-    char *name;
-    JVClassType *type;
-
-} JVMeta;
-
-typedef struct 
-{
-    JVObjectType *objectType;
-    JVAccessType *access;
-    unsigned int  declarationFlags;
-
-    char* object;
-    char* name;
-
-    // for documentation side:
-    char* title;
-    char* description;
-
-    // method only:
-    char* args;
-    int   argCount;
-} JVPrismObject;
-
-typedef struct 
-{
-    JVMeta *classInfo;
-
-    JVPrismObject **prismObject;
-    size_t prismCount;
-} ParsedJavaFile;
+#include "JavaCore.h"
 
 ParsedJavaFile* parseJavaFile(const char *filename);
 
