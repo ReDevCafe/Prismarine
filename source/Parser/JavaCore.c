@@ -1,5 +1,21 @@
 #include "JavaCore.h"
 
+int parseAccess(const char *declaration)
+{
+    if(strstr(declaration, "public")) return PUBLIC;
+    else if (strstr(declaration, "protected")) return PROTECTED;
+    return PRIVATE;
+}
+
+int parseModifier(const char *declaration)
+{
+    int modifiers = JVMOD_NONE;
+    if(strstr(declaration, "static"))   modifiers |= JVMOD_STATIC;
+    if(strstr(declaration, "final"))    modifiers |= JVMOD_FINAL;
+    if(strstr(declaration, "abstract")) modifiers |= JVMOD_ABSTRACT;
+    return modifiers;
+}
+
 void parseVariable(JVPrismObject* object, char* declaration)
 {
     if(!object || !declaration) return;
@@ -41,13 +57,9 @@ void parseVariable(JVPrismObject* object, char* declaration)
     *(typeEnd + 1) = savedChar;
 
     // Modifiers
-    char *modifier = strndup(declaration, typeStart - declaration);
-    if(strstr(modifier, "public")) object->access = PUBLIC;
-    else if (strstr(modifier, "protected")) object->access = PROTECTED;
-
-    if(strstr(declaration, "static"))   object->modifiers |= JVMOD_STATIC;
-    if(strstr(declaration, "final"))    object->modifiers |= JVMOD_FINAL;
-    if(strstr(declaration, "abstract")) object->modifiers |= JVMOD_ABSTRACT;
+    char *modifier    = strndup(declaration, typeStart - declaration);
+    object->access    = parseAccess(declaration); 
+    object->modifiers = parseModifier(declaration);
 
     free(modifier);
 }
@@ -62,12 +74,8 @@ void parseMethod(JVPrismObject* object, char* buffer)
     size_t len = strlen(declaration);
     if(len > 0 && (declaration[len - 1] == ';' || declaration[len - 1] == '{')) declaration[len - 1] = '\0';
 
-    if(strstr(declaration, "public")) object->access = PUBLIC;
-    else if(strstr(declaration, "protected")) object->access = PROTECTED;
-
-    if(strstr(declaration, "static"))    object->modifiers |= JVMOD_STATIC;
-    if(strstr(declaration, "final"))     object->modifiers |= JVMOD_FINAL;
-    if(strstr(declaration, "abstract")) object->modifiers |= JVMOD_ABSTRACT;
+    object->access    = parseAccess(declaration); 
+    object->modifiers = parseModifier(declaration);
 
     char *startParen = strchr(declaration, '(');
     char *endParen   = startParen ? strchr(declaration, ')') : NULL;
