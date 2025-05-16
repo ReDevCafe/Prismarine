@@ -6,6 +6,10 @@
 #define VARIABLE_REGEX "^[[:space:]]*(public|private|protected)?[[:space:]]*[^=()]+?(=[^;]+)?;[[:space:]]*$"
 #define METHOD_REGEX "^[[:space:]]*(public|private|protected)?[[:space:]].*\\([^;]*\\)[[:space:]]*(\\{)?[[:space:]]*?"
 
+regex_t MethodRegex     __attribute__((common));
+regex_t VariableRegex   __attribute__((common));
+bool isRegexCompiled    __attribute__((common));
+
 typedef enum 
 {
     CLASS,
@@ -38,6 +42,7 @@ typedef struct
 {
     char *name;
     JVClassType *type;
+    bool isValid;
 } JVMeta;
 
 typedef struct

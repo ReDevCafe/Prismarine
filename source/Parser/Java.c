@@ -14,10 +14,9 @@ JVMeta* isFileValid(char **lines, size_t *offset, size_t lineCount)
         char *line = lines[*offset];
         if(!line || line[0] == '\0') break;
 
-        char* trimmed = trim(line);
-        if(!isImplemented && trimmed[0] == '@' && strstr(trimmed, "PrismClass"))
+        if(!isImplemented && line[0] == '@' && strstr(line, "PrismClass"))
             isImplemented = true;
-        else 
+        if(isImplemented && !isValid) 
         {
             const char *keyword = NULL;
             if(strstr(line,"class"))
@@ -46,7 +45,7 @@ JVMeta* isFileValid(char **lines, size_t *offset, size_t lineCount)
                 continue;
             }
             
-            char *p = strstr(trimmed, keyword);
+            char *p = strstr(line, keyword);
             if(!p)
             {
                 (*offset)++;
@@ -70,7 +69,7 @@ JVMeta* isFileValid(char **lines, size_t *offset, size_t lineCount)
             
             memcpy(jvMeta->name, p, i);
             jvMeta->name[i] = '\0';
-            isValid = true;
+            jvMeta->isValid = true;
 
             (*offset)++;
             return jvMeta;
@@ -85,7 +84,7 @@ JVMeta* isFileValid(char **lines, size_t *offset, size_t lineCount)
         return NULL;
     }
 
-    if(!isValid)
+    if(!jvMeta->isValid)
     {
         free(jvMeta->name);
         free(jvMeta);
@@ -149,32 +148,43 @@ ParsedJavaFile* parseJavaFile(const char *filename)
         for(int i = 0; i < lineCount; ++i)
             free(lines[i]);
         free(lines);
-
+#ifdef DEBUG
         printf("\033[0;35m[JVPR]\033[0;33m SKIPPING: Prismarine as not been correctly implemented in %s\033[0;37m\n", filename);
+#endif // !DEBUG
         return NULL;
     }
 
     parsed->prismObject = NULL;
     parsed->classInfo = jvMeta;
+    isRegexCompiled = false;
+
+    // Add security to prevent unnecessary calls 
     while(*offset < lineCount)
     {
         JVPrismObject* obj = tryParseJVObject(lines, offset, lineCount, jvMeta);
         if(!obj)
         {
+            // Free JVPrismObject
             (*offset)++;
             continue;
         }
         
-        JVPrismObject **temp = realloc(parsed->prismObject, sizeof(JVPrismObject*) * (parsed->prismCount + 1));
-        if(!temp)
+        parsed->prismObject = realloc(parsed->prismObject, sizeof(JVPrismObject*) * (parsed->prismCount + 1));
+        if(!parsed->prismObject)
         {
+            // Free JVPrismObject
             perror("help");
             break;
         }
         
-        parsed->prismObject = temp;
         parsed->prismObject[parsed->prismCount] = obj;
         parsed->prismCount++;
+    }
+
+    if(isRegexCompiled)
+    {
+        regfree(&VariableRegex);
+        regfree(&MethodRegex);
     }
 
     free(line);

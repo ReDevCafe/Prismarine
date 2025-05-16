@@ -31,7 +31,7 @@ void parseVariable(JVPrismObject* object, char* declaration)
     if(equalSign)
     {
         *equalSign    = '\0';
-        initializer   = trim(equalSign + 1);
+        initializer   = equalSign + 1;
     }
 
     // Name
@@ -83,7 +83,7 @@ void parseMethod(JVPrismObject* object, char* buffer)
     if(startParen && endParen && endParen > startParen)
     {
         *endParen = '\0';
-        params = trim(startParen + 1);
+        params = startParen + 1;
         *startParen = '\0';
     }
 
@@ -113,32 +113,28 @@ void parseMethod(JVPrismObject* object, char* buffer)
         char *tok = strtok(params, ",");
         while(tok)
         {
-            tok = trim(tok);
-            if(*tok)
+            char *space = strrchr(tok, ' ');
+            if(!space)
             {
-                char *space = strrchr(tok, ' ');
-                if(!space)
-                {
-                    tok = strtok(NULL, ','); 
-                    continue;
-                }
-
-                JVArg* arg = calloc(1, sizeof(JVArg));
-                if(!arg)
-                {
-                    free(declaration);
-                    perror("JVPrism failed to allocate memory for arg");
-                    break;
-                }
-
-                *space = '\0';
-
-                arg->type = strdup(trim(tok));
-                arg->name = strdup(trim(space + 1));
-
-                object->args = realloc(object->args, sizeof(JVArg*) * (object->argCount + 1));
-                object->args[object->argCount++] = arg;
+                tok = strtok(NULL, ','); 
+                continue;
             }
+
+            JVArg* arg = calloc(1, sizeof(JVArg));
+            if(!arg)
+            {
+                free(declaration);
+                perror("JVPrism failed to allocate memory for arg");
+                break;
+            }
+
+            *space = '\0';
+
+            arg->type = strdup(tok);
+            arg->name = strdup(space + 1);
+
+            object->args = realloc(object->args, sizeof(JVArg*) * (object->argCount + 1));
+            object->args[object->argCount++] = arg;
 
             tok = strtok(NULL, ",");
         }
@@ -156,8 +152,12 @@ JVPrismObject* tryParseJVObject(char **lines, size_t *offset, size_t lineCount, 
     bool isImplemented = false;
     int  isSetup = 0;
 
-    regex_t methodRegex;
-    regcomp(&methodRegex, METHOD_REGEX, REG_EXTENDED);
+    if(!isRegexCompiled)
+    {
+        regcomp(&MethodRegex, METHOD_REGEX, REG_EXTENDED);
+        regcomp(&VariableRegex, VARIABLE_REGEX, REG_EXTENDED);
+        isRegexCompiled = true;
+    }
 
     while(*offset < lineCount)
     {
@@ -165,14 +165,13 @@ JVPrismObject* tryParseJVObject(char **lines, size_t *offset, size_t lineCount, 
         if(!line || line[0] == '\0')
             break;
 
-        char* trimmed = trim(line);
-        if(!isImplemented && trimmed[0] == '@' && strstr(trimmed, "PrismAnot"))  
+        if(!isImplemented && strstr(line, "@PrismAnot"))  
             isImplemented = true;
         if(isImplemented && isSetup != 0b0011)
         {
             if(!obj->title )
             {
-                char* title = extractAnotValue(trimmed, "title");
+                char* title = extractAnotValue(line, "title");
                 if(!title)
                 {
                     (*offset)++;
@@ -186,7 +185,7 @@ JVPrismObject* tryParseJVObject(char **lines, size_t *offset, size_t lineCount, 
 
             if(!obj->description)
             {
-                char* description = extractAnotValue(trimmed, "description");
+                char* description = extractAnotValue(line, "description");
                 if(!description)
                 {
                     (*offset)++;
@@ -202,10 +201,10 @@ JVPrismObject* tryParseJVObject(char **lines, size_t *offset, size_t lineCount, 
         }
         if(isImplemented && isSetup == 0b0011)
         {
-            if(match_regex(VARIABLE_REGEX, trimmed))
+            if(regexec(&VariableRegex, line, 0, NULL, 0) == 0)
             {
                 obj->objectType = VARIABLE;
-                parseVariable(obj, trimmed);
+                parseVariable(obj, line);
                 break;
             }
             
@@ -219,6 +218,7 @@ JVPrismObject* tryParseJVObject(char **lines, size_t *offset, size_t lineCount, 
             {
                 char *ln = lines[look++];
                 char *t = ln ? trim(ln) : NULL; 
+
                 if(!t) break;
 
                 size_t tlen = strlen(t);
@@ -250,7 +250,7 @@ JVPrismObject* tryParseJVObject(char **lines, size_t *offset, size_t lineCount, 
             }
             if(!buffer) continue;
             
-            int matched = regexec(&methodRegex, buffer, 0, NULL, 0) == 0;
+            int matched = regexec(&MethodRegex, buffer, 0, NULL, 0) == 0;
             if(matched)
             {
                 obj->objectType = METHOD;
@@ -265,7 +265,6 @@ JVPrismObject* tryParseJVObject(char **lines, size_t *offset, size_t lineCount, 
         (*offset)++;
     }   
 
-    regfree(&methodRegex);
     if(!isImplemented)
     {
         free(obj);

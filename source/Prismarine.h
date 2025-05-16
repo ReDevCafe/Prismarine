@@ -1,7 +1,8 @@
-#ifndef Prismarine
-#define Prismarine
+#ifndef PRISMARINE_HEADER
+#define PRISMARINE_HEADER
 
 #include "Mapper/Mapper.h"
+#include "Publish/Json.h"
 
 #ifdef _WIN32
     #include <windows.h>
@@ -12,5 +13,5 @@
 // C BON LA???
 int MAX_THREADS __attribute__((common));
 
-#endif // !Prismarine
+#endif // !PRISMARINE_HEADER
 

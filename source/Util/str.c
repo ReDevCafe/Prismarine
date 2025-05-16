@@ -1,16 +1,5 @@
 #include "str.h"
 
-int match_regex(const char *pattern, const char *str) {
-    regex_t regex;
-    int result;
-
-    if(regcomp(&regex, pattern, REG_EXTENDED) != 0) return 0;
-    result = regexec(&regex, str, 0, NULL, 0);
-    regfree(&regex);
-
-    return (result == 0);
-}
-
 char *trim(char *str)
 {
     char *end;
@@ -22,14 +11,6 @@ char *trim(char *str)
     *(end+1) = '\0';
 
     return str;
-}
-
-int *nextLineHas(const *pattern, char **lines, size_t *offset)
-{
-    char *line = lines[*offset + 1];
-    if(!line) return 0;
-
-    return match_regex(pattern, line);
 }
 
 char* extractAnotValue(const char* line, const char* key)

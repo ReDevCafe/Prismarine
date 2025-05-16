@@ -6,10 +6,6 @@ void* thread_parse_folder(void* args) {
     printf("Thread started for folder %s\n", threadArgs->folderPath);
 #endif // DEBUG
     threadArgs->result = ParseFolder(threadArgs->folderPath, 0);
-
-    if (!threadArgs->result)
-        printf("\e\033[0;34m[MPPR]\033[0;31m Thread failed to parse folder: %s\n\e[0m", threadArgs->folderPath);
-
     return 0;
 }
 
@@ -18,30 +14,37 @@ void freePrismPackage(PrismPackage *prism_package)
     for (int i = 0; i < prism_package->numChildrenFolders; ++i)
         freePrismPackage(&prism_package->childrensFolders[i]);
     free(prism_package->childrensFolders);
+    
     for (int i = 0; i < prism_package->numChildrenPrisms; ++i)
     {
-        if (prism_package->childrensPrisms[i].parse)
-            freeParsedJavaFile(prism_package->childrensPrisms[i].parse);
+        if(!prism_package->childrensPrisms[i]) continue;
+        
+        if (prism_package->childrensPrisms[i]->implemented)
+            freeParsedJavaFile(prism_package->childrensPrisms[i]->parse);
 
-        if (strcmp(prism_package->childrensPrisms[i].metaInfo.name, "root"))
-            free(prism_package->childrensPrisms[i].metaInfo.name);
+        if(strcmp(prism_package->childrensPrisms[i]->metaInfo.name, "root"))
+            free(prism_package->childrensPrisms[i]->metaInfo.name);
 
-        if (prism_package->childrensPrisms[i].metaInfo.checksum)
-            free(prism_package->childrensPrisms[i].metaInfo.checksum);
+        if(prism_package->childrensPrisms[i]->metaInfo.checksum)
+            free(prism_package->childrensPrisms[i]->metaInfo.checksum);
+
+        free(prism_package->childrensPrisms[i]);
     }
     
     free(prism_package->childrensPrisms);
-    if (strcmp(prism_package->metaInfo.name, "root"))
+
+    if(prism_package->metaInfo.name && strcmp(prism_package->metaInfo.name, "root"))
         free(prism_package->metaInfo.name);
 
     if (prism_package->metaInfo.checksum)
         free(prism_package->metaInfo.checksum);
+
     //free(prism_package);
 }
 
 PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
 {
-    PrismPackage* package = (PrismPackage*) calloc(1, sizeof(PrismPackage));
+    PrismPackage* package = calloc(1, sizeof(PrismPackage));
     if (!package) 
     {
         perror("\033[0;34m[MPPR]\033[0;31m Failed to allocate memory for PrismPackage");
@@ -52,6 +55,8 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
         package->metaInfo.name = "root";
     else 
         package->metaInfo.name = strdup(folderPath);
+
+    package->childrensPrisms = calloc(1, sizeof(Prism*));
 
     DIR* folder = opendir(folderPath);
     if(!folder)
@@ -115,8 +120,7 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
 
             case DT_REG:
                 package->numChildrenPrisms++;
-                package->childrensPrisms = realloc(package->childrensPrisms, package->numChildrenPrisms * sizeof(Prism));
-
+                package->childrensPrisms = realloc(package->childrensPrisms,sizeof(Prism*) * package->numChildrenPrisms);
                 if (!package->childrensPrisms) 
                 {
                     perror("\033[0;34m[MPPR]\033[0;31m Failed to allocate memory for child prisms\n");
@@ -125,25 +129,21 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
                     free(package);
                     return 0;
                 }
-                Prism prism = {0};
-                prism.metaInfo.name = strdup(entry->d_name);
-                prism.metaInfo.checksum = 0;
 
+                Prism* prism = calloc(1, sizeof(Prism));
+                prism->metaInfo.name = strdup(entry->d_name);
+                prism->metaInfo.checksum = 0;
+                
                 ParsedJavaFile* jvpr = parseJavaFile(path);
-                if(!jvpr)
+                if(jvpr)
                 {
-                    printf("\033[0;34m[MPPR]\033[0;31m Failed to parse Java file: %s\n", path);
-                    closedir(folder);
-
-                    free(jvpr);
-                    free(package);
-                    return 0;
+                    prism->implemented = true;
+                    prism->parse = jvpr;
                 }
-                prism.parse = jvpr;
 
+                // WORLD OF PURE IMAGINATION (NEVER, I SAID NEVER FUCKING REMOVE THIS PART, OR MEMORY LEAK. 🔫)
                 package->childrensPrisms[package->numChildrenPrisms - 1] = prism;
                 break;
-                
             default:
                 break;
         }
