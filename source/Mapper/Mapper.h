@@ -18,12 +18,15 @@
 #include "../Prismarine.h"
 #include "../Parser/Java.h"
 
-typedef struct MetaInfo {
+
+
+typedef struct
+{
     long        checksum;                   // will be usefull to prevent to do more calculations for nothing
-    char* name;                             // needed for Prismarine doc
+    char*       name;                       // needed for Prismarine doc
 } MetaInfo;
 
-typedef struct  Prism
+typedef struct
 {
     MetaInfo metaInfo;
                                             //TODO: Add all the documentation shit to this structure   
@@ -32,20 +35,22 @@ typedef struct  Prism
     bool implemented;
 } Prism;
 
-typedef struct PrismPackage
+typedef struct PrismPackage PrismPackage;
+struct PrismPackage
 {
     MetaInfo metaInfo;
 
-    struct PrismPackage* childrensFolders;  // array of PrismPackage
+    PrismPackage** childrensFolders;        // array of PrismPackage
     Prism** childrensPrisms;                // array of Prism
 
     unsigned long numChildrenFolders;       // number of PrismPackage in childrensFolders
     unsigned long numChildrenPrisms;        // number of Prism in childrensPrisms
 
-} PrismPackage;
+};
 
 
-typedef struct ThreadsArgs {
+typedef struct 
+{
     char* folderPath;
     PrismPackage* result;
 } ThreadsArgs;

@@ -32,9 +32,8 @@ int main(int argc, char *argv[])
         }
 
         // FUTURE COMMIT
-        // OutputJson(root);
+        OutputJson(root);
         freePrismPackage(root);
-        free(root);
 
         printf("\033[0;35m[PRSM]\033[0;32m Completed!\033[0;37m\n");
         return 0;

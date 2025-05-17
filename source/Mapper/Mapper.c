@@ -12,7 +12,8 @@ void* thread_parse_folder(void* args) {
 void freePrismPackage(PrismPackage *prism_package)
 {
     for (int i = 0; i < prism_package->numChildrenFolders; ++i)
-        freePrismPackage(&prism_package->childrensFolders[i]);
+        freePrismPackage(prism_package->childrensFolders[i]);
+
     free(prism_package->childrensFolders);
     
     for (int i = 0; i < prism_package->numChildrenPrisms; ++i)
@@ -38,8 +39,11 @@ void freePrismPackage(PrismPackage *prism_package)
 
     if (prism_package->metaInfo.checksum)
         free(prism_package->metaInfo.checksum);
+    
 
-    //free(prism_package);
+
+    if(prism_package)
+        free(prism_package);
 }
 
 PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
@@ -151,11 +155,7 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
 
     if(package->numChildrenFolders > 0)
     {
-        package->childrensFolders = (PrismPackage*) realloc(
-            package->childrensFolders,
-            package->numChildrenFolders * sizeof(PrismPackage)
-        );
-
+        package->childrensFolders = realloc(package->childrensFolders, sizeof(PrismPackage*) * package->numChildrenFolders);
         if (!package->childrensFolders) 
         {
             perror("\033[0;34m[MPPR]\033[0;32m Failed to allocate memory for child folders");
@@ -195,13 +195,12 @@ PrismPackage* ParseFolder(const char* folderPath, bool isRoot)
         } else 
             threadArgs[i].result->metaInfo.name = strdup(threadArgs[i].folderPath);
         
-        package->childrensFolders[i] = *threadArgs[i].result;
+        package->childrensFolders[i] = threadArgs[i].result;
 
 #ifdef DEBUG
         printf("Found folder: %s\n", threadArgs[i].result->metaInfo.name);
 #endif //! DEBUG
         free(threadArgs[i].folderPath);
-        free(threadArgs[i].result);
     }
 
 #ifdef DEBUG
