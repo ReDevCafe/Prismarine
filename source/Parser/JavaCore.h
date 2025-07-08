@@ -26,9 +26,9 @@ typedef enum
 
 typedef enum {
     JVMOD_NONE     = 0,
-    JVMOD_STATIC   = 1<<0,
-    JVMOD_FINAL    = 1<<1,
-    JVMOD_ABSTRACT = 1<<2
+    JVMOD_STATIC   = 1,
+    JVMOD_FINAL    = 2,
+    JVMOD_ABSTRACT = 4
 } JVModType;
 
 typedef enum 

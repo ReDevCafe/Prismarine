@@ -2,9 +2,9 @@
 
 int parseAccess(const char *declaration)
 {
-    if(strstr(declaration, "public")) return PUBLIC;
+    if(strstr(declaration, "private")) return PRIVATE;
     else if (strstr(declaration, "protected")) return PROTECTED;
-    return PRIVATE;
+    return PUBLIC;
 }
 
 int parseModifier(const char *declaration)
@@ -180,7 +180,7 @@ JVPrismObject* tryParseJVObject(char **lines, size_t *offset, size_t lineCount, 
                 obj->title = strdup(title);
                 free(title);
 
-                isSetup |= 1 << 0;
+                isSetup |= 1;
             }
 
             if(!obj->description)

@@ -27,8 +27,8 @@ int main(int argc, char *argv[])
         PrismPackage* root = ParseFolder(argv[1], 1);
         if(!root)
         {
-            perror("AAAAAAAAAAAAAAA");
-            return 0;
+            fprintf(stderr, "\033[0;35m[PRSM]\033[0;35m Failed to create PrismPackage.");
+            return 1;
         }
 
         // FUTURE COMMIT
