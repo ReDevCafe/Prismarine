@@ -1,7 +1,5 @@
 #include "Prismarine.h"
 
-
-
 int main(int argc, char *argv[])
 {
     if(argc > 1)
@@ -22,16 +20,20 @@ int main(int argc, char *argv[])
         MAX_THREADS = MAX_THREADS * (1 + .8/.2);
         if(MAX_THREADS < 0 || !MAX_THREADS)
         {
-            fprintf(stderr, "Error: Invalid number of threads specified.\n");
+            fprintf(stderr, "\033[0;35m[PRSM]\033[0;35m Invalid number of threads specified.\033[0;37m\n");
             return 1;
         } 
 
         PrismPackage* root = ParseFolder(argv[1], 1);
-        
-        
+        if(!root)
+        {
+            fprintf(stderr, "\033[0;35m[PRSM]\033[0;35m Failed to create PrismPackage.");
+            return 1;
+        }
 
+        // FUTURE COMMIT
+        //OutputJson(root);
         freePrismPackage(root);
-        free(root);
 
         printf("\033[0;35m[PRSM]\033[0;32m Completed!\033[0;37m\n");
         return 0;

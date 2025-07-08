@@ -1,6 +1,9 @@
 *.o
 prismarine
-source/Serializer
 .vscode
 test
 build
+callgrind.out*
+prism_packages.json
+
+source/Publish
